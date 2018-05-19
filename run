@@ -6,9 +6,6 @@ set -e
 # raise EXIT signal if property is assigned a null or empty value
 set -u
 
-# DEBUG
-set -x
-
 show_help() {
    echo "Usage:"
    echo "  # Build a local docker image"
@@ -25,7 +22,7 @@ docker_build() {
   # selinux needs to be setup
   chcon -Rt svirt_sandbox_file_t ${_workspaceDir}
   # Create a local docker image using the Dockerfile
-  docker build -t "devops-001:5000/docker-build-beegfs:6.18" ${_projectDir}
+  docker build -t "docker-build-beegfs-for-atomic:${_beegfsVersion}" ${_projectDir}
 }
 
 # Only run this inside a docker instance
@@ -55,7 +52,7 @@ docker_guts() {
 }
 
 docker_shell() {
-  docker run -it --rm -u 0:0 -v ${_workspaceDir}/:/mnt/workspace devops-001:5000/docker-build-beegfs:${_beegfsVersion} /bin/bash
+  docker run -it --rm -u 0:0 -v ${_workspaceDir}/:/mnt/workspace docker-build-beegfs-for-atomic:${_beegfsVersion} /bin/bash
 }
 
 run_build() {
@@ -64,7 +61,7 @@ run_build() {
   projectName=$( basename ${_projectDir} )
 
   echo "projectName=${projectName}"
-  docker run -it --rm -u 0:0 -v ${_workspaceDir}/:/mnt/workspace devops-001:5000/docker-build-beegfs:${_beegfsVersion} /mnt/workspace/${projectName}/run docker-guts
+  docker run -it --rm -u 0:0 -v ${_workspaceDir}/:/mnt/workspace docker-build-beegfs-for-atomic:${_beegfsVersion} /mnt/workspace/${projectName}/run docker-guts
 
   echo "Build complete: beegfs rpm files located in ${_targetDir}"
 }
