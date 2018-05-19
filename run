@@ -1,0 +1,112 @@
+#!/bin/bash
+# REF: https://git.beegfs.io/pub/v6/blob/master/BUILD.txt
+
+# raise EXIT signal if RC is non-zero
+set -e
+# raise EXIT signal if property is assigned a null or empty value
+set -u
+
+# DEBUG
+set -x
+
+show_help() {
+   echo "Usage:"
+   echo "  # Build a local docker image"
+   echo "  ./${_scriptName} docker-build"
+   echo "  # Build the beegfs rpm images inside a docker container"
+   echo "  ./${_scriptName} build"
+   echo "  # Open a docker shell to allow manual builds of beegfs"
+   echo "  ./${_scriptName} docker-shell"
+   echo "  # ONLY RUN FROM WITHIN docker-shell"
+   echo "  ./${_scriptName} docker-guts"
+}
+
+docker_build() {
+  # selinux needs to be setup
+  chcon -Rt svirt_sandbox_file_t ${_workspaceDir}
+  # Create a local docker image using the Dockerfile
+  docker build -t "devops-001:5000/docker-build-beegfs:6.18" ${_projectDir}
+}
+
+# Only run this inside a docker instance
+docker_guts() {
+  if [[ -e  ${_workspaceDir}/beegfs ]]; then
+    # Pull the latest changes into existing local repo
+    git -C ${_workspaceDir}/beegfs pull origin ${_beegfsVersion}
+  else
+    # Create a new clone
+    git clone -c http.sslVerify=false -b master https://git.beegfs.io/pub/v6.git ${_workspaceDir}/beegfs
+  fi
+
+  cd ${_workspaceDir}/beegfs
+  # Update the local repo to the tag we want to build
+  git checkout ${_beegfsVersion}
+
+  # Change install directory to one supported by ostree
+  sed -i "s:\(/usr/lib\)*/opt/beegfs:/usr/lib/opt/beegfs:g" $( grep -R -s /opt/beegfs * | cut -d':' -f1 | sort -u )
+
+  # Disable debug stage in rpm spec file
+  # Workaround to avoid beegfs_utils build failure; rpm tool no longer supports debug files outside BUILDS
+  sed -i "s/^%debug_package$/%debug_package %{nil}/"  fhgfs_utils/build/beegfs-utils.spec.in
+
+  # Build all rpms
+  cd beegfs_auto_package
+  ./make-rpms.sh -p ${_targetDir} -l ${_targetDir}/beegfs.log
+}
+
+docker_shell() {
+  docker run -it --rm -u 0:0 -v ${_workspaceDir}/:/mnt/workspace devops-001:5000/docker-build-beegfs:${_beegfsVersion} /bin/bash
+}
+
+run_build() {
+  local projectName
+
+  projectName=$( basename ${_projectDir} )
+
+  echo "projectName=${projectName}"
+  docker run -it --rm -u 0:0 -v ${_workspaceDir}/:/mnt/workspace devops-001:5000/docker-build-beegfs:${_beegfsVersion} /mnt/workspace/${projectName}/run docker-guts
+
+  echo "Build complete: beegfs rpm files located in ${_targetDir}"
+}
+
+main_function() {
+  local scriptCommand='invalid'
+  if [[ $# -ge 1 ]]; then
+    scriptCommand=$1
+    shift
+  fi
+
+  local _scriptName=$(basename $0)
+  local _invocationDir=$( cd $(dirname $0) && pwd )
+  local _projectDir=${_invocationDir}
+  local _targetDir=${_projectDir}/target
+  local _workspaceDir=$(cd ${_projectDir}/.. && pwd)
+  local _beegfsVersion=6.18
+  
+
+  echo "_projectDir=${_projectDir}"
+  echo "_workspaceDir=${_workspaceDir}"
+  mkdir -p ${_targetDir}
+
+  case "${scriptCommand}" in
+  "docker-build")
+    docker_build "$@"
+    ;;
+  "docker-shell")
+    docker_shell "$@"
+    ;;
+  "build")
+    run_build "$@"
+    ;;
+  "docker-guts")
+    docker_guts "$@"
+    ;;
+  *)
+    echo "Unknown command: ${scriptCommand}"
+    show_help
+    exit 1
+  esac
+}
+
+main_function "$@"
+
