@@ -13,12 +13,12 @@ of the ostree managed directories.
 This Docker project builds a set of BeeGFS rpms that install
 to /usr/lib/opt/beegfs.
 
-##Build instructions:
+## Build instructions:
 1. clone this project into the Atomic Host root home directory
 2. cd to cloned project
 3. Create a local docker image
-  * ./run docker-build
+   * ./run docker-build
 4. Run the local docker image to build beegfs
-  * ./run build
+   * ./run build
 5. Install resultant RPM using rpm-ostree
 
