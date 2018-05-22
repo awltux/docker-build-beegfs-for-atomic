@@ -1,5 +1,6 @@
 # Build BeeGFS for Atomic Server
 Docker Project to build BeeGFS rpm that is compatible with a Fedora 27 Atomic
+
 NOTE: Modify the FROM: clause in the Dockerfile to use it with other distributions
 
 GIT_REPO: https://github.com/awltux/docker-build-beegfs-for-atomic.git
