@@ -78,7 +78,7 @@ main_function() {
   local _projectDir=${_invocationDir}
   local _targetDir=${_projectDir}/target
   local _workspaceDir=$(cd ${_projectDir}/.. && pwd)
-  local _beegfsVersion=6.18
+  local _beegfsVersion=7.0
   
 
   echo "_projectDir=${_projectDir}"
