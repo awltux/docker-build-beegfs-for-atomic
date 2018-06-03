@@ -32,7 +32,7 @@ docker_guts() {
     git -C ${_workspaceDir}/beegfs pull origin ${_beegfsVersion}
   else
     # Create a new clone
-    git clone -c http.sslVerify=false -b master https://git.beegfs.io/pub/v6.git ${_workspaceDir}/beegfs
+    git clone -c http.sslVerify=false -b master https://git.beegfs.io/pub/v7.git ${_workspaceDir}/beegfs
   fi
 
   cd ${_workspaceDir}/beegfs
